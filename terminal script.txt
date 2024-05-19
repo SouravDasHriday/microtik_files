@@ -1,0 +1,37 @@
+/ queue type set default kind=red
+/queue simple add name=Total target=10.0.0.0/24
+:for x from 1 to 254 do={/queue simple add name="User-$x" max-limit=1024k/1024k target="10.0.0.$x" parent=Total}
+
+:for x from 2 to 254 do={/queue simple add name="testUser-$x" max-limit=20M/20M target="10.200.0.$x" }
+
+
+:for x from 2 to 254 do={/interface vlan add name="vlan-$x" interface=ether2 vlan-id=$x }
+
+ :for x from 2 to 254 do={/ip firewall address-list add list=BillDue address="10.0.0.$x" }
+
+:for x from 1 to 254 do={/ip firewall address-list add list="InternetDrop" address="10.0.0.$x"}
+
+/ip firewall filter add chain=forward src-address-list=InternetDrop action=drop
+
+
+/interface ether set ether5 arp=reply-only
+:for x from 1 to 254 do={/ip arp add mac=00:00:00:AA:BB:CC interface=ether5 address="10.0.0.$x"}
+
+
+
+
+
+/interface bridge add name=bridge1-LAN
+/interface bridge port add interface=ether2 bridge=bridge1-LAN
+ interface pppoe-server server add interface=bridge1-LAN disabled=no service-name=service1
+
+/ppp profile add name=1mb local-address=10.0.0.1 dns=8.8.8.8 only-one=yes rate-limit=1M
+/ppp profile add name=5mb local-address=10.0.0.1 dns=8.8.8.8 only-one=yes rate-limit=5M
+/ppp profile add name=10mb local-address=10.0.0.1 dns=8.8.8.8 only-one=yes rate-limit=10M
+/ppp profile add name=15mb local-address=10.0.0.1 dns=8.8.8.8 only-one=yes rate-limit=15M
+
+:for x from 1 to 254 do={/ppp secret add name="1mb$x" password="1" profile=1mb service=pppoe  remote-address="10.1.0.$x"}
+:for x from 1 to 254 do={/ppp secret add name="5mb$x" password="1" profile=5mb service=pppoe  remote-address="10.5.0.$x"}
+:for x from 1 to 254 do={/ppp secret add name="10mb$x" password="1" profile=10mb service=pppoe  remote-address="10.10.0.$x"}
+:for x from 1 to 254 do={/ppp secret add name="15mb$x" password="1" profile=15mb service=pppoe  remote-address="10.15.0.$x"}
+
